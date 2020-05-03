@@ -9,6 +9,7 @@
 #include "gmath.h"
 #include "symtab.h"
 #include "hashTable.h"
+#include "kdTree.h"
 
 /*======== void draw_scanline() ==========
   Inputs: struct matrix *points
@@ -19,7 +20,7 @@
 
   Line algorithm specifically for horizontal scanlines
   ====================*/
-void draw_scanline(int x0, double z0, int x1, double z1, int y, screen s, zbuffer zb, color c0, color c1) {
+void draw_scanline_gouraud(int x0, double z0, int x1, double z1, int y, screen s, zbuffer zb, color c0, color c1) {
   int tempX, tempZ;
   color tempC;
   double cR, cG, cB, dcR, dcG, dcB;
@@ -132,7 +133,7 @@ void draw_scanline_phong(int x0, double z0, int x1, double z1, int y, screen s, 
 
   Fills in polygon i by drawing consecutive horizontal (or vertical) lines.
   ====================*/
-void scanline_convert( struct matrix *points, int i, screen s, zbuffer zb, struct hashTable* h) {
+void scanline_convert_gouraud( struct matrix *points, int i, screen s, zbuffer zb, struct kdTree* kd) {
 
   int top, mid, bot, y;
   double topV[3], midV[3], botV[3];
@@ -221,9 +222,9 @@ void scanline_convert( struct matrix *points, int i, screen s, zbuffer zb, struc
   botV[1] = points->m[1][bot];
   botV[2] = points->m[2][bot];
 
-  iTop = getColor(h, topV);
-  iMid = getColor(h, midV);
-  iBot = getColor(h, botV);
+  iTop = kdGetColor(kd, topV);
+  iMid = kdGetColor(kd, midV);
+  iBot = kdGetColor(kd, botV);
 
   c0R = iBot.red;
   c0G = iBot.green;
@@ -274,7 +275,7 @@ void scanline_convert( struct matrix *points, int i, screen s, zbuffer zb, struc
 
     //printf("%f %f %f %f %f %f\n%d %d %d %d %d %d\n",c0R, c0G, c0B, c1R, c1G, c1B,c0.red,c0.green,c0.blue,c1.red,c1.green,c1.blue);
 
-    draw_scanline(x0, z0, x1, z1, y, s, zb, c0, c1);
+    draw_scanline_gouraud(x0, z0, x1, z1, y, s, zb, c0, c1);
 
     x0+= dx0;
     x1+= dx1;
@@ -294,7 +295,7 @@ void scanline_convert( struct matrix *points, int i, screen s, zbuffer zb, struc
   }//end scanline loop
 }
 
-void scanline_convert_phong( struct matrix *points, int i, screen s, zbuffer zb, struct hashTable* h,
+void scanline_convert_phong( struct matrix *points, int i, screen s, zbuffer zb, struct kdTree* kd, 
   double* view, double light[2][3], color ambient, struct constants* reflect) {
 
   int top, mid, bot, y;
@@ -383,9 +384,9 @@ void scanline_convert_phong( struct matrix *points, int i, screen s, zbuffer zb,
   botV[1] = points->m[1][bot];
   botV[2] = points->m[2][bot];
 
-  set(nTop,getNormal(h, topV));
-  set(nMid,getNormal(h, midV));
-  set(nBot,getNormal(h, botV));
+  set(nTop,kdGetNormal(kd, topV));
+  set(nMid,kdGetNormal(kd, midV));
+  set(nBot,kdGetNormal(kd, botV));
 
   //printf("Top: %f %f %f\nMid: %f %f %f\nBot: %f %f %f\n\n", nTop[0], nTop[1], nTop[2], nMid[0], nMid[1], nMid[2], nBot[0], nBot[1], nBot[2]);
   //printf("%f\n", nBot[0] * nBot[0] + nBot[1] * nBot[1] + nBot[2] * nBot[2]);
@@ -494,7 +495,8 @@ void draw_polygons( struct matrix *polygons, screen s, zbuffer zb,
   double v0[3];
   double v1[3];
   double v2[3];
-  struct hashTable* h = createHT(65536);
+  //struct hashTable* h = createHT(65536);
+  struct kdTree* kd = kdCreate();
   double** normals = malloc(sizeof(double) * (polygons->lastcol));
 
   double drawPercent = 0;
@@ -536,14 +538,14 @@ void draw_polygons( struct matrix *polygons, screen s, zbuffer zb,
     v2[1] = polygons->m[1][point+2];
     v2[2] = polygons->m[2][point+2];
 
-    h = addNormal(h, v0, normal);
-    h = addNormal(h, v1, normal);
-    h = addNormal(h, v2, normal);
+    kd = kdInsert(kd, v0, normal);
+    kd = kdInsert(kd, v1, normal);
+    kd = kdInsert(kd, v2, normal);
 
     //printf("Generating lighting\t%d percent complete\n", (int)(drawPercent*100));
   }
 
-  htNormalize(h, viewNormal, lightNormal, ambient, reflect);
+  kdNormalize(kd, viewNormal, lightNormal, ambient, reflect);
   //printHT(h);
 
   drawPercent = 0;
@@ -560,8 +562,8 @@ void draw_polygons( struct matrix *polygons, screen s, zbuffer zb,
       // get color value only if front facing
       //color i = get_lighting(normal, view, ambient, light, areflect, dreflect, sreflect);
 
-      //scanline_convert(polygons, point, s, zb, h);
-      scanline_convert_phong(polygons, point, s, zb, h, viewNormal, lightNormal, ambient, reflect);
+      if(DRAW_CURRENT == DRAW_GOURAUD) scanline_convert_gouraud(polygons, point, s, zb, kd);
+      else if(DRAW_CURRENT == DRAW_PHONG) scanline_convert_phong(polygons, point, s, zb, kd, viewNormal, lightNormal, ambient, reflect);
 
       /* draw_line( polygons->m[0][point], */
       /*            polygons->m[1][point], */
@@ -589,7 +591,8 @@ void draw_polygons( struct matrix *polygons, screen s, zbuffer zb,
     //printf("Drawing\t%d percent complete\n", (int)(drawPercent*100));
   }
 
-  freeHT(h);
+  //freeHT(h);
+  kdFree(kd);
   free(normals);
 }
 /*======== void add_box() ==========

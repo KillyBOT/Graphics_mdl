@@ -13,7 +13,7 @@
 #define BLUE 2
 
 
-#define SPECULAR_EXP 8
+#define SPECULAR_EXP 32
 
 // lighting functions
 color get_lighting( double *normal, double *view, color alight, double light[2][3], struct constants *reflect);
