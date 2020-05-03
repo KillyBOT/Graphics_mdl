@@ -1,0 +1,7 @@
+push
+constants shiny_teal 0.3 0.0 0.0 0.3 0.2 0.8 0.3 0.2 0.8
+scale 28 28 28
+rotate x -90
+move 8.2 0 5
+mesh shiny_teal :Utah_teapot_solid.stl
+display

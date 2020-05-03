@@ -194,7 +194,18 @@ void my_main() {
 
           break;
         case MESH:
-          printf("WIP: Mesh\n");
+          //printf("WIP: Mesh\n");
+
+          if(op[i].op.mesh.constants != NULL){
+            reflect = op[i].op.mesh.constants->s.c;
+          }
+
+          stlConvert(polygons, op[i].op.mesh.name);
+          matrix_mult(peek(systems),polygons);
+
+          draw_polygons(polygons, t, zb, view, light, ambient, reflect);
+          polygons->lastcol = 0;
+
           break;
         case SET:
           printf("WIP: Set\n");

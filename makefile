@@ -1,4 +1,4 @@
-OBJECTS= symtab.o print_pcode.o matrix.o my_main.o display.o draw.o gmath.o stack.o hashTable.o
+OBJECTS= symtab.o print_pcode.o matrix.o my_main.o display.o draw.o gmath.o stack.o hashTable.o stlConverter.o kdTree.o
 CFLAGS= -g
 LDFLAGS= -lm
 CC= gcc
@@ -33,7 +33,7 @@ my_main.o: my_main.c parser.h print_pcode.c matrix.h display.h ml6.h draw.h stac
 display.o: display.c display.h ml6.h matrix.h
 	$(CC) $(CFLAGS) -c display.c
 
-draw.o: draw.c draw.h display.h ml6.h matrix.h gmath.h hashTable.h
+draw.o: draw.c draw.h display.h ml6.h matrix.h gmath.h hashTable.h kdTree.h
 	$(CC) $(CFLAGS) -c draw.c
 
 gmath.o: gmath.c gmath.h matrix.h
@@ -44,6 +44,12 @@ stack.o: stack.c stack.h matrix.h
 
 hashTable.o: hashTable.c hashTable.h
 	$(CC) $(CFLAGS) -c hashTable.c
+
+stlConverter.o: stlConverter.c ml6.h matrix.h draw.h
+	$(CC) $(CFLAGS) -c stlConverter.c
+
+kdTree.o: kdTree.c kdTree.h gmath.h
+	$(CC) $(CFLAGS) -c kdTree.c
 
 clean:
 	rm y.tab.c y.tab.h

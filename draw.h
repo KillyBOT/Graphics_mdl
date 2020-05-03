@@ -26,6 +26,8 @@ void draw_polygons_phong( struct matrix * polygons, screen s, zbuffer zb,
   double* view, double light[2][3], color ambient,
   struct constants *reflect);
 
+struct matrix* stlConvert(struct matrix* m, char* fileName);
+
 //advanced shapes
 //3d shapes
 void add_box( struct matrix * edges,

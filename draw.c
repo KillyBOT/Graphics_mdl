@@ -46,9 +46,9 @@ void draw_scanline(int x0, double z0, int x1, double z1, int y, screen s, zbuffe
   cG = c0.green;
   cB = c0.blue;
 
-  dcR = (x1 - x0 == 0) ? ((double)c1.red-(double)c0.red)/(x1-x0+1) : 0;
-  dcG = (x1 - x0 == 0) ? ((double)c1.green-(double)c0.green)/(x1-x0+1) : 0;
-  dcB = (x1 - x0 == 0) ? ((double)c1.blue-(double)c0.blue)/(x1-x0+1) : 0;
+  dcR = (x1 - x0 != 0) ? ((double)c1.red-(double)c0.red)/(x1-x0+1) : 0;
+  dcG = (x1 - x0 != 0) ? ((double)c1.green-(double)c0.green)/(x1-x0+1) : 0;
+  dcB = (x1 - x0 != 0) ? ((double)c1.blue-(double)c0.blue)/(x1-x0+1) : 0;
 
   for(x=x0; x <= x1; x++) {
 
@@ -74,7 +74,6 @@ void draw_scanline_phong(int x0, double z0, int x1, double z1, int y, screen s, 
   double* view, double light[2][3], color ambient, struct constants* reflect) {
 
   int tempX, tempZ;
-  double tempV[3];
   double v0f[3];
   double v1f[3];
   double v[3];
@@ -96,31 +95,31 @@ void draw_scanline_phong(int x0, double z0, int x1, double z1, int y, screen s, 
   }
 
   double delta_z;
-  delta_z = (x1 - x0) != 0 ? (z1 - z0) / (x1 - x0 + 1) : 0;
+  int distance = x1 - x0 + 1;
+  delta_z = (x1 - x0) != 0 ? (z1 - z0) / distance : 0;
   int x;
   double z = z0;
 
   set(v,v0f);
 
-  dv[0] = (x1 - x0 == 0) ? (v1f[0] - v0f[0]) / (x1 - x0 + 1) : 0;
-  dv[1] = (x1 - x0 == 0) ? (v1f[1] - v0f[1]) / (x1 - x0 + 1) : 0;
-  dv[2] = (x1 - x0 == 0) ? (v1f[2] - v0f[2]) / (x1 - x0 + 1) : 0;
-  // dcR = x1 != x0 ? ((double)c1.red-(double)c0.red)/(x1-x0+1) : 0;
-  // dcG = x1 != x0 ? ((double)c1.green-(double)c0.green)/(x1-x0+1) : 0;
-  // dcB = x1 != x0 ? ((double)c1.blue-(double)c0.blue)/(x1-x0+1) : 0;
+  dv[0] = distance != 0 ? (v1f[0] - v0f[0]) / distance : 0;
+  dv[1] = distance != 0 ? (v1f[1] - v0f[1]) / distance : 0;
+  dv[2] = distance != 0 ? (v1f[2] - v0f[2]) / distance : 0;
 
   for(x=x0; x <= x1; x++) {
 
     set(vn, v);
-    normalize(vn);
+    //normalize(vn);
 
-    c = get_lighting(vn, view, ambient, light, reflect);
-    //printf("%d %d %d\n",cF.red,cF.green,cF.blue);
+    c = get_lighting(v, view, ambient, light, reflect);
 
     plot(s, zb, c, x, y, z);
 
     z+= delta_z;
-    add(v, dv);
+    //add(v, dv);
+    v[0] += dv[0];
+    v[1] += dv[1];
+    v[2] += dv[2];
 
   }
 }
@@ -388,18 +387,21 @@ void scanline_convert_phong( struct matrix *points, int i, screen s, zbuffer zb,
   set(nMid,getNormal(h, midV));
   set(nBot,getNormal(h, botV));
 
-  printf("Top: %f %f %f\nMid: %f %f %f\nBot: %f %f %f\n\n", nTop[0], nTop[1], nTop[2], nMid[0], nMid[1], nMid[2], nBot[0], nBot[1], nBot[2]);
+  //printf("Top: %f %f %f\nMid: %f %f %f\nBot: %f %f %f\n\n", nTop[0], nTop[1], nTop[2], nMid[0], nMid[1], nMid[2], nBot[0], nBot[1], nBot[2]);
+  //printf("%f\n", nBot[0] * nBot[0] + nBot[1] * nBot[1] + nBot[2] * nBot[2]);
 
   set(v0, nBot);
   set(v1, nBot);
 
-  dv0[0] = distance0 > 0 ? (nTop[0]-nBot[0])/(double)distance0 : 0;
-  dv0[1] = distance0 > 0 ? (nTop[1]-nBot[1])/(double)distance0 : 0;
-  dv0[2] = distance0 > 0 ? (nTop[2]-nBot[2])/(double)distance0 : 0;
+  dv0[0] = distance0 > 0 ? (nTop[0]-nBot[0])/distance0 : 0;
+  dv0[1] = distance0 > 0 ? (nTop[1]-nBot[1])/distance0 : 0;
+  dv0[2] = distance0 > 0 ? (nTop[2]-nBot[2])/distance0 : 0;
 
-  dv1[0] = distance1 > 0 ? (nMid[0]-nBot[0])/(double)distance1 : 0;
-  dv1[1] = distance1 > 0 ? (nMid[1]-nBot[1])/(double)distance1 : 0;
-  dv1[2] = distance1 > 0 ? (nMid[2]-nBot[2])/(double)distance1 : 0;
+  dv1[0] = distance1 > 0 ? (nMid[0]-nBot[0])/distance1 : 0;
+  dv1[1] = distance1 > 0 ? (nMid[1]-nBot[1])/distance1 : 0;
+  dv1[2] = distance1 > 0 ? (nMid[2]-nBot[2])/distance1 : 0;
+
+  //printf("dv0: %f %f %f\n", dv0[0], dv0[1], dv0[2]);
 
   while ( y <= (int)points->m[1][top] ) {
 
@@ -408,9 +410,9 @@ void scanline_convert_phong( struct matrix *points, int i, screen s, zbuffer zb,
       dx1 = distance2 > 0 ? (points->m[0][top]-points->m[0][mid])/distance2 : 0;
       dz1 = distance2 > 0 ? (points->m[2][top]-points->m[2][mid])/distance2 : 0;
 
-      dv1[0] = distance2 > 0 ? (nTop[0]-nMid[0])/(double)distance2 : 0;
-      dv1[1] = distance2 > 0 ? (nTop[1]-nMid[1])/(double)distance2 : 0;
-      dv1[2] = distance2 > 0 ? (nTop[2]-nMid[2])/(double)distance2 : 0;
+      dv1[0] = distance2 > 0 ? (nTop[0]-nMid[0])/distance2 : 0;
+      dv1[1] = distance2 > 0 ? (nTop[1]-nMid[1])/distance2 : 0;
+      dv1[2] = distance2 > 0 ? (nTop[2]-nMid[2])/distance2 : 0;
 
       set(v1, nMid);
 
@@ -418,22 +420,25 @@ void scanline_convert_phong( struct matrix *points, int i, screen s, zbuffer zb,
       z1 = points->m[2][mid];
     }//end flip code
 
-    set(v0n, v0);
-    set(v1n, v1);
-
-    normalize(v0n);
-    normalize(v1n);
+    //normalize(v0n);
+    //normalize(v1n);
     //printf("%f %f %f %f %f %f\n%d %d %d %d %d %d\n",c0R, c0G, c0B, c1R, c1G, c1B,c0.red,c0.green,c0.blue,c1.red,c1.green,c1.blue);
 
-    draw_scanline_phong(x0, z0, x1, z1, y, s, zb, v0n, v1n, view, light, ambient, reflect);
+    draw_scanline_phong(x0, z0, x1, z1, y, s, zb, v0, v1, view, light, ambient, reflect);
+    //printf("%f %f %f\n", v0[0], v0[1], v0[2]);
 
     x0+= dx0;
     x1+= dx1;
     z0+= dz0;
     z1+= dz1;
 
-    add(v0, dv0);
-    add(v1, dv1);
+    v0[0] += dv0[0];
+    v0[1] += dv0[1];
+    v0[2] += dv0[2];
+
+    v1[0] += dv1[0];
+    v1[1] += dv1[1];
+    v1[2] += dv1[2];
 
     y++;
 
@@ -507,9 +512,8 @@ void draw_polygons( struct matrix *polygons, screen s, zbuffer zb,
   lightNormal[1][1] = light[1][1];
   lightNormal[1][2] = light[1][2];
 
-  normalize(viewNormal);
-  normalize(lightNormal[0]);
-
+  //normalize(viewNormal);
+  //normalize(lightNormal[0]);
 
   for (point=0; point < polygons->lastcol-2; point+=3) {
 
@@ -540,7 +544,7 @@ void draw_polygons( struct matrix *polygons, screen s, zbuffer zb,
   }
 
   htNormalize(h, viewNormal, lightNormal, ambient, reflect);
-  //printHT(ht);
+  //printHT(h);
 
   drawPercent = 0;
   for(point = 0; point < polygons->lastcol-2; point+=3){

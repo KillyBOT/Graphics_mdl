@@ -107,6 +107,16 @@ void limit_color( color * c ) {
 
 //vector functions
 
+double* vector_lerp(double* v0, double* v1, double t){
+  double* vf = malloc(sizeof(double) * 3);
+  vf[0] = (1 - t)*(v0[0]) + t * v1[0];
+  vf[1] = (1 - t)*(v0[1]) + t * v1[1];
+  vf[2] = (1 - t)*(v0[2]) + t * v1[2];
+
+  return vf;
+
+}
+
 void set(double* vOld, double* vNew){
   vOld[0] = vNew[0];
   vOld[1] = vNew[1];
